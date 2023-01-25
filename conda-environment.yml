@@ -1,0 +1,8 @@
+name: dk_alg
+channels:
+  - defaults
+dependencies:
+  - pip
+  - more-itertools
+  - scipy
+prefix: /Users/cj/opt/anaconda3/envs/dk_alg
