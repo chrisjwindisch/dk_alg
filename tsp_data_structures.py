@@ -1,4 +1,5 @@
 import copy
+import itertools
 
 # globals at bottom of file because classes need to be defined first
 
@@ -87,6 +88,64 @@ class Orbit:
         self.segments.add_edge(seg_b)
         self.delta_o = 0 - edge_a.cost - edge_b.cost + seg_a.cost + seg_b.cost
 
+    # gets all possible Orbits from edges, creates them if not created yet
+    def get_or_create_orbits(oedges):
+        orbits = []
+        pairs_for_orbits = list(itertools.combinations(oedges, 2))
+        for pair in pairs_for_orbits:
+            # Create all 4 combos of oe's for orbits
+            if (
+                (pair[0].city_a == pair[1].city_a)
+                or (pair[0].city_a == pair[1].city_b)
+                or (pair[0].city_b == pair[1].city_a)
+                or (pair[0].city_b == pair[1].city_a)
+            ):
+                # Invalid pair because both edges contain one of the same cities
+                continue
+
+            # Get all 4 oe's
+            oe_a = all_oedges[(pair[0].city_a, pair[0].city_b)]
+            oe_rev_a = all_oedges[(pair[0].city_b, pair[0].city_a)]
+            oe_b = all_oedges[(pair[1].city_a, pair[1].city_b)]
+            oe_rev_b = all_oedges[(pair[1].city_b, pair[1].city_a)]
+
+            orbit_combos = [
+                (oe_a, oe_b),
+                (oe_a, oe_rev_b),
+                (oe_rev_a, oe_b),
+                (oe_rev_a, oe_rev_b),
+            ]
+
+            for combo in orbit_combos:
+                oe_a = combo[0]
+                oe_b = combo[1]
+                if oe_a.city_a.id < oe_a.city_b.id:
+                    city_tuple = (oe_a.city_a, oe_a.city_b)
+                else:
+                    city_tuple = (oe_a.city_b, oe_a.city_a)
+                ue_a = all_uedges[city_tuple]
+
+                if oe_b.city_a.id < oe_b.city_b.id:
+                    city_tuple = (oe_b.city_a, oe_b.city_b)
+                else:
+                    city_tuple = (oe_b.city_b, oe_b.city_a)
+                ue_b = all_uedges[city_tuple]
+
+                index_a = to_edges.uedges.index(ue_a)
+                index_b = to_edges.uedges.index(ue_b)
+                # all_orbits indexed by uedge tuple
+                if index_a < index_b:
+                    ordered_edge_tuple = (ue_a, ue_b)
+                else:
+                    ordered_edge_tuple = (ue_b, ue_a)
+
+                if ordered_edge_tuple not in all_orbits:
+                    # create it
+                    all_orbits[ordered_edge_tuple] = Orbit(edge_a=oe_a, edge_b=oe_b)
+
+                orbits.append(all_orbits[ordered_edge_tuple])
+        return orbits
+
 
 # Class to hold temp data for P
 class PTemp:
@@ -101,9 +160,12 @@ class P:
     def __init__(self):
         self.segments = EdgeList()
         self.edges = EdgeList()
-        self.edges_not_in_p = EdgeList()
         self.delta_o = 0
         self.groups = []
+
+        self.edges_not_in_p = EdgeList()
+        for oe in to_edges.oedges:
+            self.edges_not_in_p.add_edge(oe)
 
     # Light weight on purpose for efficiency, it doesn't update all the data structures
     # only the ones needed by the most expensive part of the algorithm
@@ -153,19 +215,33 @@ class P:
 # Represents and iteration of k-opt
 class I:
     def __init__(self, i):
+        # i is the number of bubbles in the potential diagram
         self.i = i  # the ith depth of k-opt (i-opt)
         self.p_1st = None  # best potential diagram for i-opt
         self.p_2nd = None  # second best potential diagram
-        self.p_not_containint_xy_wz = {}  # indexed by UEdge tuple of (xy, wz)
-        self.slots = []
+        # UPDATING this makes algorithm O(n^5) so not doing self.p_not_containint_xy_wz = {}  # indexed by UEdge tuple of (xy, wz)
+
+        # slots contains the top 2 p's for a slot for this i
+        # so it will be populated after I_i has been iterated through
+        self.slots = {}  # indexed by segment
+
+    def init_slots(self):
+        for oe in all_oedges.values():
+            if oe not in to_edges.oedges:
+                self.slots[oe] = Slot(oe.city_a, oe.city_b)
 
 
 class Slot:
-    def __init__(self):
+    def __init__(self, city_a, city_b):
         self.best_delta_o = None
         self.p_1st = None
         self.p_2nd = None
-        self.end_bubbles = None  # tuple of cities
+        if city_a.id < city_b.id:
+            city_tuple = (city_a, city_b)
+        else:
+            city_tuple = (city_b, city_a)
+        self.end_bubbles = city_tuple  # tuple of cities
+        self.end_segment = all_oedges[city_tuple]
         self.p_2nd_ties = {}  # indexed by UEdge xy
 
 

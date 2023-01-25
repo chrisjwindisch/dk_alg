@@ -5,6 +5,7 @@ from tsp_data_structures import (
     to_edges,
     segment_to_ues,
     all_orbits,
+    n,
 )
 import itertools
 import re
@@ -93,6 +94,7 @@ for oe in all_oedges.values():
 
         segment_to_ues[oe] = (e0, e1)
 
+Orbit.get_or_create_orbits(to_edges.oedges)
 pairs_for_orbits = list(itertools.combinations(to_edges.oedges, 2))
 for pair in pairs_for_orbits:
     # Create all 4 combos of oe's for orbits
