@@ -95,6 +95,8 @@ class PTemp:
         self.segment_to_remove = segment_to_remove
 
 
+# Represents a potential diagram that can contain multiple groups
+# of independent or inversion dependent potential diagrams
 class P:
     def __init__(self):
         self.segments = EdgeList()
@@ -148,6 +150,25 @@ class P:
         p_new.edges_not_in_p.remove_edge(orbit.edge_b)
 
 
+# Represents and iteration of k-opt
+class I:
+    def __init__(self, i):
+        self.i = i  # the ith depth of k-opt (i-opt)
+        self.p_1st = None  # best potential diagram for i-opt
+        self.p_2nd = None  # second best potential diagram
+        self.p_not_containint_xy_wz = {}  # indexed by UEdge tuple of (xy, wz)
+        self.slots = []
+
+
+class Slot:
+    def __init__(self):
+        self.best_delta_o = None
+        self.p_1st = None
+        self.p_2nd = None
+        self.end_bubbles = None  # tuple of cities
+        self.p_2nd_ties = {}  # indexed by UEdge xy
+
+
 # edges indexed by tuple of cities
 all_oedges = {}
 all_uedges = {}
@@ -155,7 +176,6 @@ all_uedges = {}
 # indexed by oe's as order they appear in T0
 all_orbits = {}
 
-# NOTE these are ue's, as such the final edge is left out because it must be an oe
 to_edges = EdgeList()
 
 segment_to_ues = (
