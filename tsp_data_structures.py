@@ -162,6 +162,8 @@ class P:
         self.edges = EdgeList()
         self.delta_o = 0
         self.groups = []
+        self.subtour_recalc_needed = False
+        self.does_has_subtours = False
 
         self.edges_not_in_p = EdgeList()
         for oe in to_edges.oedges:
@@ -179,6 +181,7 @@ class P:
         p_new.segments.add_edge(seg2)
         p_new.delta_o = p_new.delta_o - s.cost + seg1.cost + seg2.cost
         p_new.temp = PTemp(xy=xy, segment_to_remove=segment_to_remove)
+        p_new.subtour_recalc_needed = True
 
         return p_new
 
@@ -211,6 +214,61 @@ class P:
         p_new.edges_not_in_p.remove_edge(orbit.edge_a)
         p_new.edges_not_in_p.remove_edge(orbit.edge_b)
 
+        p_new.subtour_recalc_needed = True
+
+    def swap(tour, edge_a, edge_b):
+        # find edge_a, edge_b, update them with swap
+        city_tuple_a = get_city_tuple(edge_a.city_a, edge_b.city_a)
+        city_tuple_b = get_city_tuple(edge_a.city_b, edge_b.city_b)
+        new_edge_a = all_oedges[city_tuple_a]
+        new_edge_b = all_oedges[city_tuple_b]
+        tour.remove_edge(edge_a)
+        tour.remove_edge(edge_b)
+        tour.add_edge(new_edge_a)
+        tour.add_edge(new_edge_b)
+        return new_edge_b
+
+    def has_subtours(self):
+        if not self.subtour_recalc_needed:
+            return self.does_has_subtours
+
+        # Don't maintain a tour, just calc on demand
+        for g in self.groups:
+
+            # Copy the tour # Can't use deepcopy because it will create new edges which are supposed to be immutable
+            tour = EdgeList()
+            # TODO: Optimize this by maintaining an ongoing Tour
+            for oe in to_edges.oedges:
+                tour.add_edge(oe)
+
+            # first swap
+            g_len = len(g.oedges)
+            edge_a = g.oedges[0]
+            edge_b = g.oedges[1]
+            new_edge_b = P.swap(tour, edge_a, edge_b)
+            for i in g_len - 1:
+                new_edge_b = P.swap(tour, new_edge_b, g.oedge[i + 1])
+
+        count = 0
+        for j in len(tour):
+            e0 = tour[j]
+            e1 = tour[j + 1]
+            if e0.city_b == e1.city_a:
+                # not end of tour
+                count = count + 1
+                continue
+            else:
+                break
+
+        if count < len(tour):
+            self.does_has_subtours = True
+        else:
+            self.does_has_subtours = False
+
+        self.subtour_recalc_needed = False
+
+        return self.does_has_subtours
+
 
 # Represents and iteration of k-opt
 class I:
@@ -236,13 +294,18 @@ class Slot:
         self.best_delta_o = None
         self.p_1st = None
         self.p_2nd = None
-        if city_a.id < city_b.id:
-            city_tuple = (city_a, city_b)
-        else:
-            city_tuple = (city_b, city_a)
+        city_tuple = get_city_tuple(city_a, city_b)
         self.end_bubbles = city_tuple  # tuple of cities
         self.end_segment = all_oedges[city_tuple]
         self.p_2nd_ties = {}  # indexed by UEdge xy
+
+
+def get_city_tuple(city_a, city_b):
+    if city_a.id < city_b.id:
+        city_tuple = (city_a, city_b)
+    else:
+        city_tuple = (city_b, city_a)
+    return city_tuple
 
 
 # edges indexed by tuple of cities

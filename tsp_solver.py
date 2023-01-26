@@ -48,6 +48,9 @@ def try_adding_xy(slot, I_i):
 
 
 def try_update_bests(p_new, I_i):
+    if p_new.has_subtours():
+        return
+
     if p_best.delta_o > p_new.delta_o:
         p_best = p_new
     if I_i.p_1st.delta_o > p_new.delta_o:

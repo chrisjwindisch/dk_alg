@@ -95,54 +95,5 @@ for oe in all_oedges.values():
         segment_to_ues[oe] = (e0, e1)
 
 Orbit.get_or_create_orbits(to_edges.oedges)
-pairs_for_orbits = list(itertools.combinations(to_edges.oedges, 2))
-for pair in pairs_for_orbits:
-    # Create all 4 combos of oe's for orbits
-    if (
-        (pair[0].city_a == pair[1].city_a)
-        or (pair[0].city_a == pair[1].city_b)
-        or (pair[0].city_b == pair[1].city_a)
-        or (pair[0].city_b == pair[1].city_a)
-    ):
-        # Invalid pair because both edges contain one of the same cities
-        continue
-
-    # Get all 4 oe's
-    oe_a = all_oedges[(pair[0].city_a, pair[0].city_b)]
-    oe_rev_a = all_oedges[(pair[0].city_b, pair[0].city_a)]
-    oe_b = all_oedges[(pair[1].city_a, pair[1].city_b)]
-    oe_rev_b = all_oedges[(pair[1].city_b, pair[1].city_a)]
-
-    orbit_combos = [
-        (oe_a, oe_b),
-        (oe_a, oe_rev_b),
-        (oe_rev_a, oe_b),
-        (oe_rev_a, oe_rev_b),
-    ]
-
-    for combo in orbit_combos:
-        oe_a = combo[0]
-        oe_b = combo[1]
-        if oe_a.city_a.id < oe_a.city_b.id:
-            city_tuple = (oe_a.city_a, oe_a.city_b)
-        else:
-            city_tuple = (oe_a.city_b, oe_a.city_a)
-        ue_a = all_uedges[city_tuple]
-
-        if oe_b.city_a.id < oe_b.city_b.id:
-            city_tuple = (oe_b.city_a, oe_b.city_b)
-        else:
-            city_tuple = (oe_b.city_b, oe_b.city_a)
-        ue_b = all_uedges[city_tuple]
-
-        index_a = to_edges.uedges.index(ue_a)
-        index_b = to_edges.uedges.index(ue_b)
-        # all_orbits indexed by uedge tuple
-        if index_a < index_b:
-            ordered_edge_tuple = (ue_a, ue_b)
-        else:
-            ordered_edge_tuple = (ue_b, ue_a)
-
-        all_orbits[ordered_edge_tuple] = Orbit(edge_a=oe_a, edge_b=oe_b)
 
 print(f"Done setting up the problem")
